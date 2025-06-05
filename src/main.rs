@@ -4,29 +4,22 @@ use bevy_ratatui::{RatatuiContext, RatatuiPlugins};
 
 mod gameplugin;
 use gameplugin::CharacterControllerPlugin;
+mod uiplugin;
 use ratatui::text::Text;
+use uiplugin::UIPlugin;
 
 fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             CharacterControllerPlugin,
+            UIPlugin,
             RatatuiPlugins {
                 enable_input_forwarding: true,
                 ..default()
             },
         ))
-        .add_systems(Update, draw_system)
         .run();
-}
-
-fn draw_system(mut context: ResMut<RatatuiContext>) -> Result {
-    context.draw(|frame| {
-        let text = Text::raw("hello world\npress 'q' to quit");
-        frame.render_widget(text, frame.area());
-    })?;
-
-    Ok(())
 }
 
 #[derive(Component)]
