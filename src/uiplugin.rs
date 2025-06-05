@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_ratatui::{RatatuiContext, RatatuiPlugins};
+use bevy_ratatui::RatatuiContext;
 use ratatui::text::Text;
 pub struct UIPlugin;
 

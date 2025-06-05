@@ -1,11 +1,10 @@
-use bevy::{app::AppExit, prelude::*};
-use bevy_ratatui::event::KeyEvent;
-use bevy_ratatui::{RatatuiContext, RatatuiPlugins};
+use bevy::prelude::*;
+
+use bevy_ratatui::RatatuiPlugins;
 
 mod gameplugin;
 use gameplugin::CharacterControllerPlugin;
 mod uiplugin;
-use ratatui::text::Text;
 use uiplugin::UIPlugin;
 
 fn main() {
