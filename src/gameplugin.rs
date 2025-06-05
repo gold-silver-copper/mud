@@ -46,7 +46,14 @@ impl Default for MovementBundle {
 fn keyboard_input(
     mut movement_event_writer: EventWriter<MovementAction>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut app_exit: EventWriter<AppExit>,
 ) {
+    if keyboard_input.just_pressed(KeyCode::KeyQ) {
+        app_exit.write_default();
+    }
+    if keyboard_input.just_pressed(KeyCode::KeyP) {
+        panic!("Panic!");
+    }
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]);
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]);
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
