@@ -2,6 +2,7 @@ use bevy::{app::AppExit, prelude::*};
 use bevy_ratatui::event::KeyEvent;
 use bevy_ratatui::{RatatuiContext, RatatuiPlugins};
 
+mod gameplugin;
 use ratatui::text::Text;
 
 fn main() {
@@ -33,4 +34,9 @@ fn keyboard_input_system(keys: Res<ButtonInput<KeyCode>>, mut app_exit: EventWri
     if keys.just_pressed(KeyCode::KeyP) {
         panic!("Panic!");
     }
+}
+
+#[derive(Component)]
+pub struct Character {
+    pub character_id: i64,
 }
