@@ -20,8 +20,3 @@ fn main() {
         ))
         .run();
 }
-
-#[derive(Component)]
-pub struct Character {
-    pub character_id: i64,
-}
