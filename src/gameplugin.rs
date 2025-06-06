@@ -37,7 +37,7 @@ impl Default for Creature {
 }
 
 #[derive(Component, Debug)]
-pub enum LocationTypes {}
+struct LocationName(String);
 
 #[derive(Component, Debug)]
 #[relationship(relationship_target = ContainedBy)]
@@ -46,6 +46,14 @@ struct Contains(Entity);
 #[derive(Component, Debug)]
 #[relationship_target(relationship = Contains)]
 struct ContainedBy(Vec<Entity>);
+
+#[derive(Component, Debug)]
+#[relationship(relationship_target = DualWayFrom)]
+struct DualWayTo(Entity);
+
+#[derive(Component, Debug)]
+#[relationship_target(relationship = DualWayTo)]
+struct DualWayFrom(Vec<Entity>);
 
 /// A bundle that contains components for character movement.
 #[derive(Bundle)]
@@ -73,9 +81,17 @@ fn spawn_player(mut commands: Commands) {
             PlayerBundle::default(), // or .new(initial_location)
         ))
         .id();
+    let place = commands
+        .spawn((
+            GameLocation::default(), // or .new(initial_location)
+            LocationName("hi".to_string()),
+        ))
+        .id();
     commands.spawn((
         GameLocation::default(), // or .new(initial_location)
         Contains(player),
+        DualWayTo(place),
+        LocationName("bye".to_string()),
     ));
 }
 
@@ -85,6 +101,9 @@ fn keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     query: Query<Entity>, // All controllable entities
 ) {
+    if keyboard_input.just_pressed(KeyCode::KeyQ) {
+        panic!("Panic!");
+    }
     // Send input to all entities with WorldLocation
     for entity in &query {
         let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]);
@@ -109,24 +128,14 @@ fn keyboard_input(
 
 fn debug_relationships(
     // Not all of our entities are targeted by something, so we use `Option` in our query to handle this case.
-    relations_query: Query<(&Contains, Option<&ContainedBy>)>,
+    relations_query: Query<(&LocationName, &Contains)>,
 ) {
     let mut relationships = String::new();
 
-    for (targeting, maybe_targeted_by) in relations_query.iter() {
-        let targeted_by_string = if let Some(targeted_by) = maybe_targeted_by {
-            let mut vec_of_names = Vec::<&Name>::new();
+    for (location_name, contains) in relations_query.iter() {
+        let targeted_by_string = &location_name.0;
 
-            // Convert this to a nice string for printing.
-            let vec_of_str: Vec<&str> = vec_of_names.iter().map(|name| name.as_str()).collect();
-            vec_of_str.join(", ")
-        } else {
-            "nobody".to_string()
-        };
-
-        relationships.push_str(&format!(
-            "is targeting, and is targeted by {targeted_by_string}\n",
-        ));
+        relationships.push_str(&format!("{targeted_by_string} contains {}", contains.0));
     }
 
     println!("{}", relationships);
