@@ -7,6 +7,7 @@ impl Plugin for CharacterControllerPlugin {
         app.add_event::<MovementAction>()
             .add_systems(Update, keyboard_input)
             .add_systems(Startup, spawn_player)
+            .add_systems(FixedUpdate, debug_relationships)
             .add_systems(FixedUpdate, movement);
     }
 }
@@ -20,6 +21,8 @@ pub enum MovementAction {
 
 #[derive(Component, Debug)]
 pub struct GameLocation {}
+#[derive(Component, Debug)]
+pub struct Creature {}
 
 impl Default for GameLocation {
     fn default() -> Self {
@@ -27,23 +30,19 @@ impl Default for GameLocation {
     }
 }
 
+impl Default for Creature {
+    fn default() -> Self {
+        Creature {}
+    }
+}
+
 #[derive(Component, Debug)]
 pub enum LocationTypes {}
 
-/// The entity that this entity is targeting.
-///
-/// This is the source of truth for the relationship,
-/// and can be modified directly to change the target.
 #[derive(Component, Debug)]
 #[relationship(relationship_target = ContainedBy)]
 struct Contains(Entity);
 
-/// All entities that are targeting this entity.
-///
-/// This component is updated reactively using the component hooks introduced by deriving
-/// the [`Relationship`] trait. We should not modify this component directly,
-/// but can safely read its field. In a larger project, we could enforce this through the use of
-/// private fields and public getters.
 #[derive(Component, Debug)]
 #[relationship_target(relationship = Contains)]
 struct ContainedBy(Vec<Entity>);
@@ -69,8 +68,14 @@ impl Default for PlayerBundle {
 }
 
 fn spawn_player(mut commands: Commands) {
+    let player = commands
+        .spawn((
+            PlayerBundle::default(), // or .new(initial_location)
+        ))
+        .id();
     commands.spawn((
-        PlayerBundle::default(), // or .new(initial_location)
+        GameLocation::default(), // or .new(initial_location)
+        Contains(player),
     ));
 }
 
@@ -100,6 +105,31 @@ fn keyboard_input(
             movement_event_writer.send(MovementAction::Jump(entity));
         }
     }
+}
+
+fn debug_relationships(
+    // Not all of our entities are targeted by something, so we use `Option` in our query to handle this case.
+    relations_query: Query<(&Contains, Option<&ContainedBy>)>,
+) {
+    let mut relationships = String::new();
+
+    for (targeting, maybe_targeted_by) in relations_query.iter() {
+        let targeted_by_string = if let Some(targeted_by) = maybe_targeted_by {
+            let mut vec_of_names = Vec::<&Name>::new();
+
+            // Convert this to a nice string for printing.
+            let vec_of_str: Vec<&str> = vec_of_names.iter().map(|name| name.as_str()).collect();
+            vec_of_str.join(", ")
+        } else {
+            "nobody".to_string()
+        };
+
+        relationships.push_str(&format!(
+            "is targeting, and is targeted by {targeted_by_string}\n",
+        ));
+    }
+
+    println!("{}", relationships);
 }
 
 /// Responds to [`MovementAction`] events and moves character controllers accordingly.
