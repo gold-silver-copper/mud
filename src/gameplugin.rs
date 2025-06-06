@@ -49,12 +49,12 @@ struct ContainedBy(Entity);
 struct Contains(Vec<Entity>);
 
 #[derive(Component, Debug)]
-#[relationship(relationship_target = DualWayFrom)]
-struct DualWayTo(Entity);
+#[relationship(relationship_target = Connections)]
+struct ConnectionTo(Entity);
 
-#[derive(Component, Debug)]
-#[relationship_target(relationship = DualWayTo)]
-struct DualWayFrom(Vec<Entity>);
+#[derive(Component, Debug, Deref)]
+#[relationship_target(relationship =ConnectionTo)]
+struct Connections(Vec<Entity>);
 
 fn spawn_player(mut commands: Commands) {
     let place = commands
@@ -66,14 +66,14 @@ fn spawn_player(mut commands: Commands) {
     let place2 = commands
         .spawn((
             GameLocation::default(), // or .new(initial_location)
-            DualWayTo(place),
+            ConnectionTo(place),
             LocationName("bye".to_string()),
         ))
         .id();
     let player = commands
         .spawn((
             Player {}, // or .new(initial_location)
-            ContainedBy(place2),
+            ContainedBy(place),
         ))
         .id();
 }
@@ -89,16 +89,8 @@ fn keyboard_input(
     }
 
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]);
-    let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]);
-    let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
-    let right = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
 
-    let horizontal = right as i8 - left as i8;
-    let vertical = up as i8 - down as i8;
-
-    let direction = (horizontal + vertical) as i64 * 5;
-
-    if direction != 0 {
+    if up {
         movement_event_writer.send(MovementAction::Move(eid));
     }
 }
@@ -121,15 +113,16 @@ fn debug_relationships(
 /// Responds to [`MovementAction`] events and moves character controllers accordingly.
 fn movement(
     mut movement_event_reader: EventReader<MovementAction>,
-    mut locations: Query<(&GameLocation, &Contains)>,
+    mut locations: Query<(&GameLocation, &Connections, &Contains)>,
     mut commands: Commands,
 ) {
     for event in movement_event_reader.read() {
         match event {
             MovementAction::Move(entity) => {
-                for (a, c) in locations.iter() {
+                for (a, b, c) in locations.iter() {
                     if c.contains(entity) {
                         commands.entity(entity.clone()).remove::<ContainedBy>();
+                        commands.entity(entity.clone()).insert(ContainedBy(b[0]));
                         println!("Moved entity {:?} to ", entity);
                     }
                 }
