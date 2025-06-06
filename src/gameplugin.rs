@@ -41,12 +41,12 @@ struct LocationName(String);
 struct Player {}
 
 #[derive(Component, Debug)]
-#[relationship(relationship_target = ContainedBy)]
-struct Contains(Entity);
+#[relationship(relationship_target = Contains)]
+struct ContainedBy(Entity);
 
 #[derive(Component, Debug, Deref)]
-#[relationship_target(relationship = Contains)]
-struct ContainedBy(Vec<Entity>);
+#[relationship_target(relationship = ContainedBy)]
+struct Contains(Vec<Entity>);
 
 #[derive(Component, Debug)]
 #[relationship(relationship_target = DualWayFrom)]
@@ -57,23 +57,25 @@ struct DualWayTo(Entity);
 struct DualWayFrom(Vec<Entity>);
 
 fn spawn_player(mut commands: Commands) {
-    let player = commands
-        .spawn((
-            Player {}, // or .new(initial_location)
-        ))
-        .id();
     let place = commands
         .spawn((
             GameLocation::default(), // or .new(initial_location)
             LocationName("hi".to_string()),
         ))
         .id();
-    commands.spawn((
-        GameLocation::default(), // or .new(initial_location)
-        Contains(player),
-        DualWayTo(place),
-        LocationName("bye".to_string()),
-    ));
+    let place2 = commands
+        .spawn((
+            GameLocation::default(), // or .new(initial_location)
+            DualWayTo(place),
+            LocationName("bye".to_string()),
+        ))
+        .id();
+    let player = commands
+        .spawn((
+            Player {}, // or .new(initial_location)
+            ContainedBy(place2),
+        ))
+        .id();
 }
 
 fn keyboard_input(
@@ -110,7 +112,7 @@ fn debug_relationships(
     for (location_name, contains) in relations_query.iter() {
         let targeted_by_string = &location_name.0;
 
-        relationships.push_str(&format!("{targeted_by_string} contains {}", contains.0));
+        relationships.push_str(&format!("{targeted_by_string} contains {:#?}", contains));
     }
 
     println!("{}", relationships);
@@ -119,19 +121,18 @@ fn debug_relationships(
 /// Responds to [`MovementAction`] events and moves character controllers accordingly.
 fn movement(
     mut movement_event_reader: EventReader<MovementAction>,
-    mut locations: Query<(&GameLocation, &DualWayFrom, &ContainedBy)>,
+    mut locations: Query<(&GameLocation, &Contains)>,
     mut commands: Commands,
 ) {
     for event in movement_event_reader.read() {
         match event {
             MovementAction::Move(entity) => {
-                for (a, b, c) in locations.iter() {
+                for (a, c) in locations.iter() {
                     if c.contains(entity) {
-                        commands.entity(entity.clone()).remove::<Contains>();
+                        commands.entity(entity.clone()).remove::<ContainedBy>();
+                        println!("Moved entity {:?} to ", entity);
                     }
                 }
-
-                println!("Moved entity {:?} to ", entity);
             }
         }
     }
