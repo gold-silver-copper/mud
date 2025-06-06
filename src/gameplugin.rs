@@ -18,27 +18,53 @@ pub enum MovementAction {
     Jump(Entity),
 }
 
-/// The world location of a character.
 #[derive(Component, Debug)]
-pub struct WorldLocation(pub i64);
+pub struct GameLocation {}
+
+impl Default for GameLocation {
+    fn default() -> Self {
+        GameLocation {}
+    }
+}
+
+#[derive(Component, Debug)]
+pub enum LocationTypes {}
+
+/// The entity that this entity is targeting.
+///
+/// This is the source of truth for the relationship,
+/// and can be modified directly to change the target.
+#[derive(Component, Debug)]
+#[relationship(relationship_target = ContainedBy)]
+struct Contains(Entity);
+
+/// All entities that are targeting this entity.
+///
+/// This component is updated reactively using the component hooks introduced by deriving
+/// the [`Relationship`] trait. We should not modify this component directly,
+/// but can safely read its field. In a larger project, we could enforce this through the use of
+/// private fields and public getters.
+#[derive(Component, Debug)]
+#[relationship_target(relationship = Contains)]
+struct ContainedBy(Vec<Entity>);
 
 /// A bundle that contains components for character movement.
 #[derive(Bundle)]
 pub struct PlayerBundle {
-    world_location: WorldLocation,
+    //  world_location: WorldLocation,
 }
 
 impl PlayerBundle {
-    pub const fn new(world_location: i64) -> Self {
+    pub const fn new() -> Self {
         Self {
-            world_location: WorldLocation(world_location),
+        //    world_location: WorldLocation(Entity::PLACEHOLDER),
         }
     }
 }
 
 impl Default for PlayerBundle {
     fn default() -> Self {
-        Self::new(30)
+        Self::new()
     }
 }
 
@@ -52,7 +78,7 @@ fn spawn_player(mut commands: Commands) {
 fn keyboard_input(
     mut movement_event_writer: EventWriter<MovementAction>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    query: Query<Entity, With<WorldLocation>>, // All controllable entities
+    query: Query<Entity>, // All controllable entities
 ) {
     // Send input to all entities with WorldLocation
     for entity in &query {
@@ -79,19 +105,19 @@ fn keyboard_input(
 /// Responds to [`MovementAction`] events and moves character controllers accordingly.
 fn movement(
     mut movement_event_reader: EventReader<MovementAction>,
-    mut locations: Query<&mut WorldLocation>,
+    //  mut locations: Query<&mut MovementAction>,
 ) {
     for event in movement_event_reader.read() {
         match event {
             MovementAction::Move(entity, direction) => {
-                if let Ok(mut location) = locations.get_mut(*entity) {
-                    location.0 += direction;
-                    println!("Moved entity {:?} to {}", entity, location.0);
+                if let location = 1 {
+                    //  location.0 += direction;
+                    println!("Moved entity {:?} to {}", entity, location);
                 }
             }
             MovementAction::Jump(entity) => {
-                if let Ok(location) = locations.get_mut(*entity) {
-                    println!("Entity {:?} jumped at location {}", entity, location.0);
+                if let location = 1 {
+                    println!("Entity {:?} jumped at location {}", entity, location);
                 }
             }
         }
