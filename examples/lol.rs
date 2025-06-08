@@ -2,10 +2,7 @@ use bevy::prelude::*;
 
 use bevy_ratatui::RatatuiPlugins;
 
-mod gameplugin;
-use gameplugin::CharacterControllerPlugin;
-mod uiplugin;
-use uiplugin::UIPlugin;
+use mud::*;
 
 fn main() {
     App::new()

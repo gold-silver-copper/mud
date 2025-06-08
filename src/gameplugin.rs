@@ -1,3 +1,4 @@
+use crate::components::*;
 use bevy::prelude::*;
 
 pub struct CharacterControllerPlugin;
@@ -5,79 +6,15 @@ pub struct CharacterControllerPlugin;
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MovementAction>()
+            .add_event::<PopulateAction>()
             .add_systems(Update, keyboard_input)
             .add_systems(Startup, spawn_player)
             .add_systems(FixedUpdate, debug_relationships)
             .init_resource::<UIState>()
+            .add_systems(FixedUpdate, populate_action_solver)
             .add_systems(FixedUpdate, movement);
     }
 }
-
-/// An event sent for a movement input action, targeting a specific entity.
-#[derive(Event)]
-pub enum MovementAction {
-    Move(Entity),
-}
-
-#[derive(Resource, Debug)]
-pub struct UIState {
-    active_element: UIElement,
-    entity_selection_list: Vec<Entity>,
-    entity_selection_index: usize,
-}
-impl Default for UIState {
-    fn default() -> Self {
-        UIState {
-            active_element: UIElement::Base,
-            entity_selection_list: Vec::new(),
-            entity_selection_index: 0,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum UIElement {
-    Base,
-    Travel,
-}
-
-#[derive(Component, Debug)]
-pub struct GameLocation {}
-#[derive(Component, Debug)]
-pub struct Creature {}
-
-impl Default for GameLocation {
-    fn default() -> Self {
-        GameLocation {}
-    }
-}
-
-impl Default for Creature {
-    fn default() -> Self {
-        Creature {}
-    }
-}
-
-#[derive(Component, Debug)]
-struct LocationName(String);
-#[derive(Component, Debug)]
-struct Player {}
-
-#[derive(Component, Debug)]
-#[relationship(relationship_target = Contains)]
-struct ContainedBy(Entity);
-
-#[derive(Component, Debug, Deref)]
-#[relationship_target(relationship = ContainedBy)]
-struct Contains(Vec<Entity>);
-
-#[derive(Component, Debug)]
-#[relationship(relationship_target = Connections)]
-struct ConnectionTo(Entity);
-
-#[derive(Component, Debug, Deref)]
-#[relationship_target(relationship =ConnectionTo)]
-struct Connections(Vec<Entity>);
 
 fn spawn_player(mut commands: Commands) {
     let place = commands
@@ -103,6 +40,7 @@ fn spawn_player(mut commands: Commands) {
 
 fn keyboard_input(
     mut movement_event_writer: EventWriter<MovementAction>,
+    mut populate_event_writer: EventWriter<PopulateAction>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut ui_state: ResMut<UIState>,
     query: Query<(Entity, &Player)>,
@@ -113,15 +51,24 @@ fn keyboard_input(
         panic!("Panic!");
     }
 
-    let key_t = keyboard_input.any_pressed([KeyCode::KeyT]);
+    let key_t = keyboard_input.just_pressed(KeyCode::KeyT);
+    let key_w = keyboard_input.just_pressed(KeyCode::KeyW);
 
     match ui_state.active_element {
         UIElement::Base => {
             if key_t {
-                movement_event_writer.send(MovementAction::Move(player_id));
+                ui_state.active_element = UIElement::Travel;
+                populate_event_writer.send(PopulateAction::LocationConnections(player_id));
+                //populate entity list with connections
+                // movement_event_writer.send(MovementAction::Move(player_id));
+            }
+            if key_w {}
+        }
+        UIElement::Travel => {
+            if key_w {
+                ui_state.active_element = UIElement::Base;
             }
         }
-        UIElement::Travel => (),
     }
 }
 
@@ -154,6 +101,25 @@ fn movement(
                         commands.entity(entity.clone()).remove::<ContainedBy>();
                         commands.entity(entity.clone()).insert(ContainedBy(b[0]));
                         println!("Moved entity {:?} to ", entity);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn populate_action_solver(
+    mut populate_action_reader: EventReader<PopulateAction>,
+    mut locations: Query<(&GameLocation, &Connections, &Contains)>,
+    mut commands: Commands,
+    mut ui_state: ResMut<UIState>,
+) {
+    for event in populate_action_reader.read() {
+        match event {
+            PopulateAction::LocationConnections(player_id) => {
+                for (a, connections, contained_ents) in locations.iter() {
+                    if contained_ents.contains(player_id) {
+                        ui_state.entity_selection_list = connections.to_vec();
                     }
                 }
             }
