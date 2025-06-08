@@ -5,7 +5,7 @@ use ratatui::{
     prelude::Stylize,
     style::Style,
     text::Text,
-    widgets::{Block, List, ListState},
+    widgets::{Block, List, ListDirection, ListState},
 };
 pub struct UIPlugin;
 
@@ -38,7 +38,11 @@ fn draw_system(mut context: ResMut<RatatuiContext>, mut ui_state: ResMut<UIState
             // This should be stored outside of the function in your application state.
             let mut state = ListState::default();
 
-            state.select(Some(0)); // select the forth item (0-indexed)
+            ui_state.entity_selection_index = ui_state
+                .entity_selection_index
+                .clamp(0, ui_state.entity_selection_list.len() - 1);
+
+            state.select(Some(ui_state.entity_selection_index)); // select the forth item (0-indexed)
 
             context.draw(|frame| {
                 frame.render_stateful_widget(list, frame.area(), &mut state);

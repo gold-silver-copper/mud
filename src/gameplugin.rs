@@ -30,6 +30,20 @@ fn spawn_player(mut commands: Commands) {
             LocationName("bye".to_string()),
         ))
         .id();
+    let place2 = commands
+        .spawn((
+            GameLocation::default(), // or .new(initial_location)
+            ConnectionTo(place),
+            LocationName("asd".to_string()),
+        ))
+        .id();
+    let place2 = commands
+        .spawn((
+            GameLocation::default(), // or .new(initial_location)
+            ConnectionTo(place),
+            LocationName("xcx".to_string()),
+        ))
+        .id();
     let player = commands
         .spawn((
             Player {}, // or .new(initial_location)
@@ -51,22 +65,34 @@ fn keyboard_input(
         panic!("Panic!");
     }
 
-    let key_t = keyboard_input.just_pressed(KeyCode::KeyT);
-    let key_w = keyboard_input.just_pressed(KeyCode::KeyW);
+    let key_travel = keyboard_input.just_pressed(KeyCode::KeyT);
+    let key_up = keyboard_input.just_pressed(KeyCode::KeyW);
+    let key_left = keyboard_input.just_pressed(KeyCode::KeyA);
+    let key_down = keyboard_input.just_pressed(KeyCode::KeyS);
+    let key_right = keyboard_input.just_pressed(KeyCode::KeyD);
+    let key_z = keyboard_input.just_pressed(KeyCode::KeyZ);
 
     match ui_state.active_element {
         UIElement::Base => {
-            if key_t {
+            if key_travel {
                 ui_state.active_element = UIElement::Travel;
                 populate_event_writer.send(PopulateAction::LocationConnections(player_id));
                 //populate entity list with connections
                 // movement_event_writer.send(MovementAction::Move(player_id));
             }
-            if key_w {}
+            if key_up {}
         }
         UIElement::Travel => {
-            if key_w {
+            if key_z {
                 ui_state.active_element = UIElement::Base;
+            }
+            if key_up {
+                if ui_state.entity_selection_index > 0 {
+                    ui_state.entity_selection_index -= 1;
+                }
+            }
+            if key_down {
+                ui_state.entity_selection_index += 1;
             }
         }
     }
