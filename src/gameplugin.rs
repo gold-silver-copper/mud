@@ -8,6 +8,7 @@ impl Plugin for CharacterControllerPlugin {
             .add_systems(Update, keyboard_input)
             .add_systems(Startup, spawn_player)
             .add_systems(FixedUpdate, debug_relationships)
+            .init_resource::<UIState>()
             .add_systems(FixedUpdate, movement);
     }
 }
@@ -16,6 +17,28 @@ impl Plugin for CharacterControllerPlugin {
 #[derive(Event)]
 pub enum MovementAction {
     Move(Entity),
+}
+
+#[derive(Resource, Debug)]
+pub struct UIState {
+    active_element: UIElement,
+    entity_selection_list: Vec<Entity>,
+    entity_selection_index: usize,
+}
+impl Default for UIState {
+    fn default() -> Self {
+        UIState {
+            active_element: UIElement::Base,
+            entity_selection_list: Vec::new(),
+            entity_selection_index: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum UIElement {
+    Base,
+    Travel,
 }
 
 #[derive(Component, Debug)]
@@ -81,17 +104,24 @@ fn spawn_player(mut commands: Commands) {
 fn keyboard_input(
     mut movement_event_writer: EventWriter<MovementAction>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut ui_state: ResMut<UIState>,
     query: Query<(Entity, &Player)>,
 ) {
-    let eid = query.single().unwrap().0;
+    let player_id = query.single().unwrap().0;
+
     if keyboard_input.just_pressed(KeyCode::KeyQ) {
         panic!("Panic!");
     }
 
-    let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]);
+    let key_t = keyboard_input.any_pressed([KeyCode::KeyT]);
 
-    if up {
-        movement_event_writer.send(MovementAction::Move(eid));
+    match ui_state.active_element {
+        UIElement::Base => {
+            if key_t {
+                movement_event_writer.send(MovementAction::Move(player_id));
+            }
+        }
+        UIElement::Travel => (),
     }
 }
 
